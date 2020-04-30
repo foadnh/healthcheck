@@ -10,10 +10,12 @@ import (
 	"time"
 )
 
+// A HealthCheck holds all details of checkers
 type HealthCheck struct {
-	mutex       sync.RWMutex
-	checkers    map[string]*checker
-	backgrounds []backgroundChecker
+	mutex            sync.RWMutex
+	checkers         map[string]*checker
+	backgrounds      []backgroundChecker
+	backgroundCancel context.CancelFunc
 }
 
 type backgroundChecker struct {
@@ -44,7 +46,17 @@ func (h *HealthCheck) Run(ctx context.Context) {
 			h.backgrounds = append(h.backgrounds, backgroundChecker{c, tickerOfChecker(ctx, c)})
 		}
 	}
+	ctx, h.backgroundCancel = context.WithCancel(ctx)
 	go h.runInBackground(ctx)
+}
+
+// Close stops running of the background checkers and release resource
+func (h *HealthCheck) Close() {
+	h.mutex.RLock()
+	for i := range h.backgrounds {
+		h.backgrounds[i].ticker.Stop()
+	}
+	h.backgroundCancel()
 }
 
 func (h *HealthCheck) check(ctx context.Context) map[string]error {
