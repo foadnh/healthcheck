@@ -62,7 +62,7 @@ func newCheckerWithTimeout(c Checker, timeout time.Duration) checkerWithTimeout 
 	return func(ctx context.Context) error {
 		ctx, cancel := context.WithTimeout(ctx, timeout)
 		defer cancel()
-		errChan := make(chan error)
+		errChan := make(chan error, 1)
 		go func() {
 			errChan <- c(ctx)
 		}()
