@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"reflect"
 	"sync"
 	"time"
 )
@@ -44,7 +45,7 @@ func (h *HealthCheck) Run(ctx context.Context) {
 			h.backgrounds = append(h.backgrounds, backgroundChecker{c, tickerOfChecker(ctx, c)})
 		}
 	}
-	h.runInBackground(ctx)
+	go h.runInBackground(ctx)
 }
 
 func (h *HealthCheck) check(ctx context.Context) map[string]error {
@@ -66,19 +67,21 @@ func tickerOfChecker(_ context.Context, c *checker) *time.Ticker {
 }
 
 func (h *HealthCheck) runInBackground(ctx context.Context) {
-	// TODO please find a way to make it a single goroutine
+	if len(h.backgrounds) == 0 {
+		return
+	}
+	selects := make([]reflect.SelectCase, len(h.backgrounds)+1)
 	for i := range h.backgrounds {
-		go func(b *backgroundChecker) {
-			b.checker.run(ctx)
-			for {
-				select {
-				case <-b.ticker.C:
-					b.checker.run(ctx)
-				case <-ctx.Done():
-					return
-				}
-			}
-		}(&h.backgrounds[i])
+		selects[i] = reflect.SelectCase{Dir: reflect.SelectRecv, Chan: reflect.ValueOf(h.backgrounds[i].ticker.C)}
+	}
+	selects[len(h.backgrounds)] = reflect.SelectCase{Dir: reflect.SelectRecv, Chan: reflect.ValueOf(ctx.Done())}
+	for {
+		chosen, _, ok := reflect.Select(selects)
+		if !ok {
+			return
+		}
+		// To run in background if we have many slow goroutines
+		h.backgrounds[chosen].checker.run(ctx)
 	}
 }
 
