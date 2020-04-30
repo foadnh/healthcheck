@@ -72,6 +72,7 @@ func (h *HealthCheck) runInBackground(ctx context.Context) {
 	}
 	selects := make([]reflect.SelectCase, len(h.backgrounds)+1)
 	for i := range h.backgrounds {
+		h.backgrounds[i].checker.run(ctx)
 		selects[i] = reflect.SelectCase{Dir: reflect.SelectRecv, Chan: reflect.ValueOf(h.backgrounds[i].ticker.C)}
 	}
 	selects[len(h.backgrounds)] = reflect.SelectCase{Dir: reflect.SelectRecv, Chan: reflect.ValueOf(ctx.Done())}
