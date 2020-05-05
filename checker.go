@@ -22,17 +22,17 @@ var (
 	// New Checkers have neverCheckedErr error. It is useful for background checkers.
 	neverCheckedErr = errors.New("this checker never checked")
 	// A timeoutErr returns when a checker reach the timeout.
-	timoutErr = errors.New("timeout")
+	timeoutErr = errors.New("timeout")
 )
 
 // A checker holds data related to Checker and its results and other params.
 type checker struct {
-	checker     checkerWithTimeout
-	timeout     time.Duration
-	interval    time.Duration
-	capacity    uint
-	err         error
-	errorsOnRow uint
+	checker      checkerWithTimeout
+	timeout      time.Duration
+	interval     time.Duration
+	threshold    uint
+	err          error
+	errorsInARow uint
 }
 
 // Check checks the health of a Checker.
@@ -42,7 +42,7 @@ func (c *checker) check(ctx context.Context) error {
 	if c.interval == 0 {
 		c.run(ctx)
 	}
-	if c.errorsOnRow < c.capacity {
+	if c.errorsInARow < c.threshold {
 		return nil
 	}
 	return c.err
@@ -54,9 +54,9 @@ func (c *checker) run(ctx context.Context) {
 	defer cancel()
 	c.err = c.checker(ctx)
 	if c.err != nil {
-		c.errorsOnRow++
+		c.errorsInARow++
 	} else {
-		c.errorsOnRow = 0
+		c.errorsInARow = 0
 	}
 }
 
@@ -89,7 +89,7 @@ func newCheckerWithTimeout(c Checker, timeout time.Duration) checkerWithTimeout 
 		case err := <-errChan:
 			return err
 		case <-ctx.Done():
-			return timoutErr
+			return timeoutErr
 		}
 	}
 }
@@ -104,9 +104,9 @@ func InBackground(interval time.Duration) CheckerOption {
 
 // WithThreshold adds a threshold of errors in the row to actually checker shows unhealthy state.
 // Returns a CheckerOption that can be passed during the Checker registration.
-func WithThreshold(capacity uint) CheckerOption {
+func WithThreshold(threshold uint) CheckerOption {
 	return func(c *checker) {
-		c.capacity = capacity
-		c.errorsOnRow = capacity
+		c.threshold = threshold
+		c.errorsInARow = threshold
 	}
 }
