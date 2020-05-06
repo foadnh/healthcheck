@@ -1,3 +1,6 @@
+[![Build Status](https://travis-ci.org/foadnh/healthcheck.svg?branch=master)](https://travis-ci.org/foadnh/healthcheck)
+[![Test Coverage](https://api.codeclimate.com/v1/badges/544df3f8fcbde9d0c605/test_coverage)](https://codeclimate.com/github/foadnh/healthcheck/test_coverage)
+[![Maintainability](https://api.codeclimate.com/v1/badges/544df3f8fcbde9d0c605/maintainability)](https://codeclimate.com/github/foadnh/healthcheck/maintainability)
 # healthcheck
 Healthcheck for Go services
 
