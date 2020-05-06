@@ -10,7 +10,7 @@ import (
 // Return 200 if all checkers pass, otherwise 503.
 // If no parameter set, handler will only return the status code and no body.
 // If detail query parameter set, it will show the detail of each checker and
-// their errors, or OK status. The body is in JSON fromat.
+// their errors, or OK status. The body is in JSON format.
 func (h *HealthCheck) handler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	errs := h.check(ctx)

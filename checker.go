@@ -8,12 +8,12 @@ import (
 
 // Types
 type (
-	// A Checker is a function responsible to check the status of a service and return an error if checker is unhealthy.
+	// A Checker is a function responsible to check the status of a service and return an error if service is unhealthy.
 	Checker func(ctx context.Context) error
-	// A CheckerOption is a modifier of a checker. It can be passed while registering a checker to customize it.
-	CheckerOption func(c *checker)
+	// A CheckOption is a modifier of a check. It can be passed while registering a checker to customize it.
+	CheckOption func(c *check)
 
-	// A checkerWithTimeout is a Checker function with timeout handl
+	// A checkerWithTimeout is a Checker function with timeout handler.
 	checkerWithTimeout func(ctx context.Context) error
 )
 
@@ -21,12 +21,12 @@ type (
 var (
 	// New Checkers have neverCheckedErr error. It is useful for background checkers.
 	neverCheckedErr = errors.New("this checker never checked")
-	// A timeoutErr returns when a checker reach the timeout.
+	// A timeoutErr returns when a Checker reach the timeout.
 	timeoutErr = errors.New("timeout")
 )
 
-// A checker holds data related to Checker and its results and other params.
-type checker struct {
+// A check holds data related to Checker and its results and other params.
+type check struct {
 	checker      checkerWithTimeout
 	timeout      time.Duration
 	interval     time.Duration
@@ -35,10 +35,10 @@ type checker struct {
 	errorsInARow uint
 }
 
-// Check checks the health of a Checker.
-// If the Checker is not a background checker, it runs the checker.
-// It checks the threshold of the checker and return err value if threshold passes. err value can be nil.
-func (c *checker) check(ctx context.Context) error {
+// check checks the healthiness of a service.
+// If the check is not a background check, it runs the Checker.
+// It checks the threshold of the errors and return err value if threshold passes. err value can be nil.
+func (c *check) check(ctx context.Context) error {
 	if c.interval == 0 {
 		c.run(ctx)
 	}
@@ -49,7 +49,7 @@ func (c *checker) check(ctx context.Context) error {
 }
 
 // run executes a Checker.
-func (c *checker) run(ctx context.Context) {
+func (c *check) run(ctx context.Context) {
 	ctx, cancel := context.WithTimeout(ctx, c.timeout)
 	defer cancel()
 	c.err = c.checker(ctx)
@@ -60,12 +60,22 @@ func (c *checker) run(ctx context.Context) {
 	}
 }
 
-// newChecker creates a new instance of checker.
+// isInBackground shows if a check should be running in the background.
+func (c *check) isInBackground() bool {
+	return c.interval != 0
+}
+
+// ticker creates a ticker for a check.
+func (c *check) ticker() *time.Ticker {
+	return time.NewTicker(c.interval)
+}
+
+// newCheck creates a new instance of check.
 // 	c		The Checker function
-// 	timeout	The timeout of a checker when executing
-//	ops		Checker Options e.g. InBackground
-func newChecker(c Checker, timeout time.Duration, opts ...CheckerOption) *checker {
-	s := checker{
+// 	timeout	The timeout of a check when executing
+//	ops		Check Options e.g. InBackground
+func newCheck(c Checker, timeout time.Duration, opts ...CheckOption) *check {
+	s := check{
 		checker: newCheckerWithTimeout(c, timeout),
 		timeout: timeout,
 		err:     neverCheckedErr,
@@ -76,7 +86,7 @@ func newChecker(c Checker, timeout time.Duration, opts ...CheckerOption) *checke
 	return &s
 }
 
-// newCheckerWithTimeout creates a checker with a timeout
+// newCheckerWithTimeout creates a Checker with a timeout
 func newCheckerWithTimeout(c Checker, timeout time.Duration) checkerWithTimeout {
 	return func(ctx context.Context) error {
 		ctx, cancel := context.WithTimeout(ctx, timeout)
@@ -94,18 +104,18 @@ func newCheckerWithTimeout(c Checker, timeout time.Duration) checkerWithTimeout 
 	}
 }
 
-// InBackground force a checker to run in the background.
-// Returns a CheckerOption that can be passed during the Checker registration.
-func InBackground(interval time.Duration) CheckerOption {
-	return func(c *checker) {
+// InBackground forces a check to run in the background.
+// Returns a CheckOption that can be passed during the Checker registration.
+func InBackground(interval time.Duration) CheckOption {
+	return func(c *check) {
 		c.interval = interval
 	}
 }
 
-// WithThreshold adds a threshold of errors in the row to actually checker shows unhealthy state.
-// Returns a CheckerOption that can be passed during the Checker registration.
-func WithThreshold(threshold uint) CheckerOption {
-	return func(c *checker) {
+// WithThreshold adds a threshold of errors in the row to show unhealthy state.
+// Returns a CheckOption that can be passed during the Checker registration.
+func WithThreshold(threshold uint) CheckOption {
+	return func(c *check) {
 		c.threshold = threshold
 		c.errorsInARow = threshold
 	}

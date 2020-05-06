@@ -15,14 +15,14 @@ func TestInBackground(t *testing.T) {
 	tests := []struct {
 		name string
 		args args
-		c    checker
+		c    check
 	}{
 		{
 			"in_background",
 			args{
 				time.Minute,
 			},
-			checker{},
+			check{},
 		},
 	}
 	for _, tt := range tests {
@@ -43,14 +43,14 @@ func TestWithThreshold(t *testing.T) {
 	tests := []struct {
 		name string
 		args args
-		c    checker
+		c    check
 	}{
 		{
 			"in_background",
 			args{
 				5,
 			},
-			checker{},
+			check{},
 		}}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -63,8 +63,8 @@ func TestWithThreshold(t *testing.T) {
 	}
 }
 
-func Test_checker_check(t *testing.T) {
-	testErr := errors.New("checker.check error")
+func Test_check_check(t *testing.T) {
+	testErr := errors.New("check.check error")
 	checkerCreator := func(err error) checkerWithTimeout {
 		return func(_ context.Context) error {
 			return err
@@ -143,7 +143,7 @@ func Test_checker_check(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c := &checker{
+			c := &check{
 				checker:      tt.fields.checker,
 				timeout:      tt.fields.timeout,
 				interval:     tt.fields.interval,
@@ -158,8 +158,8 @@ func Test_checker_check(t *testing.T) {
 	}
 }
 
-func Test_checker_run(t *testing.T) {
-	testErr := errors.New("checker.check error")
+func Test_check_run(t *testing.T) {
+	testErr := errors.New("check.run error")
 	checkerCreator := func(err error) checkerWithTimeout {
 		return func(_ context.Context) error {
 			return err
@@ -208,7 +208,7 @@ func Test_checker_run(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c := &checker{
+			c := &check{
 				checker:      tt.fields.checker,
 				timeout:      tt.fields.timeout,
 				interval:     tt.fields.interval,
@@ -218,35 +218,97 @@ func Test_checker_run(t *testing.T) {
 			}
 			c.run(tt.args.ctx)
 			if c.err != tt.wantErr {
-				t.Errorf("checker.run() err = %v, want %v", c.err, tt.wantErr)
+				t.Errorf("check.run() err = %v, want %v", c.err, tt.wantErr)
 			}
 			if c.errorsInARow != tt.wantErrorsInARow {
-				t.Errorf("checker.run() errorsInARow = %v, want %v", c.errorsInARow, tt.wantErrorsInARow)
+				t.Errorf("check.run() errorsInARow = %v, want %v", c.errorsInARow, tt.wantErrorsInARow)
+			}
+		})
+	}
+}
+
+func Test_check_isInBackground(t *testing.T) {
+	type fields struct {
+		interval time.Duration
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		want   bool
+	}{
+		{
+			"in_background",
+			fields{
+				time.Minute,
+			},
+			true,
+		},
+		{
+			"not_in_background",
+			fields{},
+			false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := &check{
+				interval: tt.fields.interval,
+			}
+			if got := c.isInBackground(); got != tt.want {
+				t.Errorf("isInBackground() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+// We can't compare actual value in here. Only check if function works.
+func Test_check_ticker(t *testing.T) {
+	type fields struct {
+		interval time.Duration
+	}
+	tests := []struct {
+		name   string
+		fields fields
+	}{
+		{
+			"simple",
+			fields{
+				interval: time.Minute,
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := &check{
+				interval: tt.fields.interval,
+			}
+			if got := c.ticker(); got == nil {
+				t.Errorf("ticker() want *time.Ticker, got %v", got)
 			}
 		})
 	}
 }
 
 func Test_newChecker(t *testing.T) {
-	testErr := errors.New("newChecker error")
+	testErr := errors.New("newCheck error")
 	type args struct {
 		c       Checker
 		timeout time.Duration
-		opts    []CheckerOption
+		opts    []CheckOption
 	}
 	tests := []struct {
 		name string
 		args args
-		want *checker
+		want *check
 	}{
 		{
 			"simple",
 			args{
 				func(_ context.Context) error { return testErr },
 				time.Minute,
-				[]CheckerOption{},
+				[]CheckOption{},
 			},
-			&checker{
+			&check{
 				timeout: time.Minute,
 				err:     neverCheckedErr,
 			},
@@ -256,9 +318,9 @@ func Test_newChecker(t *testing.T) {
 			args{
 				func(_ context.Context) error { return testErr },
 				time.Minute,
-				[]CheckerOption{InBackground(time.Hour)},
+				[]CheckOption{InBackground(time.Hour)},
 			},
-			&checker{
+			&check{
 				timeout:  time.Minute,
 				err:      neverCheckedErr,
 				interval: time.Hour,
@@ -269,9 +331,9 @@ func Test_newChecker(t *testing.T) {
 			args{
 				func(_ context.Context) error { return testErr },
 				time.Minute,
-				[]CheckerOption{WithThreshold(5)},
+				[]CheckOption{WithThreshold(5)},
 			},
-			&checker{
+			&check{
 				timeout:      time.Minute,
 				err:          neverCheckedErr,
 				threshold:    5,
@@ -281,13 +343,13 @@ func Test_newChecker(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := newChecker(tt.args.c, tt.args.timeout, tt.args.opts...)
+			got := newCheck(tt.args.c, tt.args.timeout, tt.args.opts...)
 			if err := got.checker(context.Background()); err != testErr {
-				t.Errorf("newChecker().checker() = %v, want %v", err, testErr)
+				t.Errorf("newCheck().check() = %v, want %v", err, testErr)
 			}
 			got.checker = nil
 			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("newChecker() = %v, want %v", got, tt.want)
+				t.Errorf("newCheck() = %v, want %v", got, tt.want)
 			}
 		})
 	}
