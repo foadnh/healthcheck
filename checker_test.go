@@ -310,7 +310,7 @@ func Test_newChecker(t *testing.T) {
 			},
 			&check{
 				timeout: time.Minute,
-				err:     neverCheckedErr,
+				err:     errNeverChecked,
 			},
 		},
 		{
@@ -322,7 +322,7 @@ func Test_newChecker(t *testing.T) {
 			},
 			&check{
 				timeout:  time.Minute,
-				err:      neverCheckedErr,
+				err:      errNeverChecked,
 				interval: time.Hour,
 			},
 		},
@@ -335,7 +335,7 @@ func Test_newChecker(t *testing.T) {
 			},
 			&check{
 				timeout:      time.Minute,
-				err:          neverCheckedErr,
+				err:          errNeverChecked,
 				threshold:    5,
 				errorsInARow: 5,
 			},
@@ -385,7 +385,7 @@ func Test_newCheckerWithTimeout(t *testing.T) {
 				checkerCreator(time.Second),
 				0,
 			},
-			timeoutErr,
+			errTimeout,
 		},
 	}
 	for _, tt := range tests {

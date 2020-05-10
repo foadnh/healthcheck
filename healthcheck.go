@@ -1,5 +1,4 @@
-// Provides easy to register and manage health checks for services.
-
+// Package healthcheck provides easy to register and manage health checks for services.
 package healthcheck
 
 import (

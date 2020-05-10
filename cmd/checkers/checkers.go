@@ -1,4 +1,4 @@
-// Ready to use healthcheck.Checker functions.
+// Package checkers provides ready to use healthcheck.Checker functions.
 // These are also simple Checker examples.
 package checkers
 
@@ -8,7 +8,8 @@ import (
 	"runtime"
 )
 
-// *sql.DB implements Pinger interface.
+//A Pinger interface is used to call Database Checker.
+// A *sql.DB implements Pinger interface.
 type Pinger interface {
 	PingContext(ctx context.Context) error
 }

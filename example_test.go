@@ -16,9 +16,8 @@ func Example() {
 	dummyUnhealthyChecker := func(_ context.Context) error {
 		if serviceIsUnhealthy {
 			return errors.New("not_feeling_good")
-		} else {
-			return nil
 		}
+		return nil
 	}
 
 	h := New()

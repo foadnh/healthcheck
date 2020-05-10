@@ -19,10 +19,10 @@ type (
 
 // Pre defined errors
 var (
-	// New Checkers have neverCheckedErr error. It is useful for background checkers.
-	neverCheckedErr = errors.New("this checker never checked")
-	// A timeoutErr returns when a Checker reach the timeout.
-	timeoutErr = errors.New("timeout")
+	// New Checkers have errNeverChecked error. It is useful for background checkers.
+	errNeverChecked = errors.New("this checker never checked")
+	// A errTimeout returns when a Checker reach the timeout.
+	errTimeout = errors.New("timeout")
 )
 
 // A check holds data related to Checker and its results and other params.
@@ -78,7 +78,7 @@ func newCheck(c Checker, timeout time.Duration, opts ...CheckOption) *check {
 	s := check{
 		checker: newCheckerWithTimeout(c, timeout),
 		timeout: timeout,
-		err:     neverCheckedErr,
+		err:     errNeverChecked,
 	}
 	for i := range opts {
 		opts[i](&s)
@@ -99,7 +99,7 @@ func newCheckerWithTimeout(c Checker, timeout time.Duration) checkerWithTimeout 
 		case err := <-errChan:
 			return err
 		case <-ctx.Done():
-			return timeoutErr
+			return errTimeout
 		}
 	}
 }
