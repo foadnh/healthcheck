@@ -3,6 +3,7 @@ package healthcheck
 import (
 	"context"
 	"errors"
+	"net/http"
 	"reflect"
 	"testing"
 	"time"
@@ -23,7 +24,8 @@ func TestNew(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := New(); !reflect.DeepEqual(got, tt.want) {
+			serveMux := http.NewServeMux()
+			if got := New(serveMux, "/healthcheck"); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("New() = %v, want %v", got, tt.want)
 			}
 		})

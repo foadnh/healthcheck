@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
 	"time"
 )
 
@@ -20,7 +21,9 @@ func Example() {
 		return nil
 	}
 
-	h := New()
+	serveMux := http.NewServeMux()
+
+	h := New(serveMux, "/healthcheck")
 	h.Register("dummy_healthy_checker", dummyHealthyChecker, time.Second)
 	h.Register("dummy_unhealthy_checker_in_background", dummyUnhealthyChecker, time.Second*2, InBackground(time.Millisecond))
 	h.Register("dummy_unhealthy_checker_with_threshold", dummyUnhealthyChecker, time.Second, WithThreshold(2))

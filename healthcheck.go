@@ -32,12 +32,14 @@ type backgroundChecker struct {
 }
 
 // New creates a new HealthCheck.
-func New() *HealthCheck {
+// 	serve			ServeMux to register handler. If not sure, pass http.DefaultServeMux.
+// 	handlerPattern	patten for handler. e.g. "/healthcheck"
+func New(serve *http.ServeMux, handlerPattern string) *HealthCheck {
 	h := &HealthCheck{
 		checkers:    make(map[string]checker),
 		backgrounds: make([]backgroundChecker, 0),
 	}
-	http.HandleFunc("/monitor", h.handler)
+	serve.HandleFunc(handlerPattern, h.handler)
 	return h
 }
 
