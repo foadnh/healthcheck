@@ -5,16 +5,23 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"sync"
 	"time"
 )
 
 func Example() {
 	ctx := context.Background()
-	var serviceIsUnhealthy bool
+	var (
+		serviceIsUnhealthy bool
+		// If Checker has changing variable, use mutex to handle race condition.
+		mutex sync.RWMutex
+	)
 	dummyHealthyChecker := func(_ context.Context) error {
 		return nil
 	}
 	dummyUnhealthyChecker := func(_ context.Context) error {
+		mutex.RLock()
+		defer mutex.RUnlock()
 		if serviceIsUnhealthy {
 			return errors.New("not_feeling_good")
 		}
@@ -36,7 +43,9 @@ func Example() {
 	fmt.Println(h.check(ctx))
 
 	// Lets make unhealthy checkers fail
+	mutex.Lock()
 	serviceIsUnhealthy = true
+	mutex.Unlock()
 	time.Sleep(time.Millisecond * 10)
 
 	fmt.Println(h.check(ctx))
