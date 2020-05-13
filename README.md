@@ -2,6 +2,7 @@
 [![Test Coverage](https://codecov.io/gh/foadnh/healthcheck/branch/master/graph/badge.svg)](https://codecov.io/gh/foadnh/healthcheck)
 [![Go Report Card](https://goreportcard.com/badge/github.com/foadnh/healthcheck)](https://goreportcard.com/report/github.com/foadnh/healthcheck)
 [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Ffoadnh%2Fhealthcheck.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Ffoadnh%2Fhealthcheck?ref=badge_shield)
+
 # healthcheck 
 Healthcheck for Go services
 
@@ -18,3 +19,7 @@ Other implementations, has one of these 2 issues:
 
 ## Examples
 `checkers` package has some examples.
+
+
+## License
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Ffoadnh%2Fhealthcheck.svg?type=large)](https://app.fossa.io/projects/git%2Bgithub.com%2Ffoadnh%2Fhealthcheck?ref=badge_large)
