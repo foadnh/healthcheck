@@ -17,7 +17,7 @@ type checker interface {
 	ticker() *time.Ticker
 }
 
-// A HealthCheck holds all details of checkers.
+// A HealthCheck holds all details of checkers and manage their executions.
 type HealthCheck struct {
 	mutex            sync.RWMutex
 	checkers         map[string]checker
@@ -33,7 +33,7 @@ type backgroundChecker struct {
 
 // New creates a new HealthCheck.
 // 	serve			ServeMux to register handler. If not sure, pass http.DefaultServeMux.
-// 	handlerPattern	patten for handler. e.g. "/healthcheck"
+// 	handlerPattern	patten for handler (e.g. "/healthcheck").
 func New(serve *http.ServeMux, handlerPattern string) *HealthCheck {
 	h := &HealthCheck{
 		checkers:    make(map[string]checker),
@@ -57,13 +57,16 @@ func (h *HealthCheck) Register(name string, c Checker, timeout time.Duration, op
 
 // Run executes a goroutine that runs background checkers.
 func (h *HealthCheck) Run(ctx context.Context) {
-	h.mutex.RLock()
-	defer h.mutex.RUnlock()
+	h.mutex.Lock()
 	for _, c := range h.checkers {
 		if c.isInBackground() {
 			h.backgrounds = append(h.backgrounds, backgroundChecker{c, c.ticker()})
 		}
 	}
+	if len(h.backgrounds) > 0 {
+		ctx, h.backgroundCancel = context.WithCancel(ctx)
+	}
+	h.mutex.Unlock()
 	go h.runInBackground(ctx)
 }
 
@@ -83,8 +86,6 @@ func (h *HealthCheck) Close() {
 func (h *HealthCheck) check(ctx context.Context) map[string]error {
 	var err error
 	errs := make(map[string]error)
-	h.mutex.RLock()
-	defer h.mutex.RUnlock()
 	for name, checker := range h.checkers {
 		err = checker.check(ctx)
 		if err != nil {
@@ -96,10 +97,11 @@ func (h *HealthCheck) check(ctx context.Context) map[string]error {
 
 // runInBackground listens to background checkers tickers and run the checkers checkers.
 func (h *HealthCheck) runInBackground(ctx context.Context) {
+	h.mutex.RLock()
+	defer h.mutex.RUnlock()
 	if len(h.backgrounds) == 0 {
 		return
 	}
-	ctx, h.backgroundCancel = context.WithCancel(ctx)
 	selects := make([]reflect.SelectCase, len(h.backgrounds)+1)
 	for i := range h.backgrounds {
 		h.backgrounds[i].checker.run(ctx)

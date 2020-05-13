@@ -173,6 +173,11 @@ func TestHealthCheck_Run(t *testing.T) {
 			if len(tt.wantBackgrounds) != len(h.backgrounds) {
 				t.Errorf("Run() len(backgrounds) = %v, want %v", len(h.backgrounds), len(tt.wantBackgrounds))
 			}
+			if len(tt.wantBackgrounds) > 0 {
+				if h.backgroundCancel == nil {
+					t.Error("Run() backgroundCancel expected, got nil")
+				}
+			}
 			for i := range h.backgrounds {
 				bc := h.backgrounds[i].checker
 				ec := tt.fields.checkers[backgroundMap[bc]]
@@ -342,14 +347,9 @@ func TestHealthCheck_runInBackground(t *testing.T) {
 			ctx, cancel := context.WithTimeout(tt.args.ctx, 10*time.Millisecond)
 			defer cancel()
 			h.runInBackground(ctx)
-			if len(tt.fields.backgrounds) > 0 {
-				if h.backgroundCancel == nil {
-					t.Error("runInBackground() backgroundCancel expected, got nil")
-				}
-				for i := range tt.fields.backgrounds {
-					if err := tt.fields.backgrounds[i].checker.(*mockCheck).err; err != testErr {
-						t.Errorf("runInBackground() checker.err = %v, want %v", err, testErr)
-					}
+			for i := range tt.fields.backgrounds {
+				if err := tt.fields.backgrounds[i].checker.(*mockCheck).err; err != testErr {
+					t.Errorf("runInBackground() checker.err = %v, want %v", err, testErr)
 				}
 			}
 		})

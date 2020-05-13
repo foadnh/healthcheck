@@ -3,6 +3,7 @@ package healthcheck
 import (
 	"context"
 	"errors"
+	"sync"
 	"time"
 )
 
@@ -33,6 +34,7 @@ type check struct {
 	threshold    uint
 	err          error
 	errorsInARow uint
+	mutex        sync.RWMutex
 }
 
 // check checks the healthiness of a service.
@@ -42,6 +44,8 @@ func (c *check) check(ctx context.Context) error {
 	if c.interval == 0 {
 		c.run(ctx)
 	}
+	c.mutex.RLock()
+	defer c.mutex.RUnlock()
 	if c.errorsInARow < c.threshold {
 		return nil
 	}
@@ -52,6 +56,8 @@ func (c *check) check(ctx context.Context) error {
 func (c *check) run(ctx context.Context) {
 	ctx, cancel := context.WithTimeout(ctx, c.timeout)
 	defer cancel()
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
 	c.err = c.checker(ctx)
 	if c.err != nil {
 		c.errorsInARow++
