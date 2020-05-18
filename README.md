@@ -74,4 +74,4 @@ Executable example in [pkg.go.dev](https://pkg.go.dev/github.com/foadnh/healthch
 
 
 ## License
-[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Ffoadnh%2Fhealthcheck.svg?type=large)](https://app.fossa.io/projects/git%2Bgithub.com%2Ffoadnh%2Fhealthcheck?ref=badge_large)
+This project is licensed under the terms of the Mozilla Public License 2.0.
